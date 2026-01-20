@@ -1,0 +1,33 @@
+# Build results
+bin/
+obj/
+out/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.idea/
+
+# NuGet
+*.nupkg
+packages/
+project.lock.json
+project.fragment.lock.json
+
+# Debug logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Essentia binaries (large files - users should download separately)
+Resources/essentia/linux-x64/essentia_streaming_extractor_music
+Resources/essentia/linux-arm64/essentia_streaming_extractor_music
+Resources/essentia/win-x64/essentia_streaming_extractor_music.exe
+Resources/essentia/osx-x64/essentia_streaming_extractor_music
+Resources/essentia/osx-arm64/essentia_streaming_extractor_music

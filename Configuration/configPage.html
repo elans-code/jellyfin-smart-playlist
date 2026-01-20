@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Smart Spotify Playlists Configuration</title>
+</head>
+<body>
+<div id="SmartSpotifyPlaylistsConfigPage"
+     data-role="page"
+     class="page type-interior pluginConfigurationPage"
+     data-require="emby-input,emby-button,emby-select,emby-checkbox,emby-slider">
+
+    <div data-role="content">
+        <div class="content-primary">
+            <form id="SmartSpotifyPlaylistsConfigForm" class="smartSpotifyPlaylistsConfigForm">
+
+                <div class="sectionTitleContainer flex align-items-center">
+                    <h2 class="sectionTitle">Smart Spotify Playlists</h2>
+                </div>
+
+                <p class="description">
+                    This plugin creates AI-powered mood/genre playlists by analyzing your Spotify Liked Songs
+                    and matching them to your local Jellyfin library.
+                </p>
+
+                <!-- Spotify Configuration Section -->
+                <div class="verticalSection">
+                    <h3 class="sectionTitle">Spotify Configuration</h3>
+                    <p class="fieldDescription">
+                        Create a Spotify app at
+                        <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener noreferrer">
+                            developer.spotify.com/dashboard
+                        </a>
+                        to get your Client ID and Secret. Set the redirect URI to your Jellyfin server URL.
+                    </p>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtSpotifyClientId">
+                            Spotify Client ID
+                        </label>
+                        <input id="txtSpotifyClientId"
+                               type="text"
+                               is="emby-input"
+                               class="emby-input" />
+                        <div class="fieldDescription">Your Spotify application's Client ID</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtSpotifyClientSecret">
+                            Spotify Client Secret
+                        </label>
+                        <input id="txtSpotifyClientSecret"
+                               type="password"
+                               is="emby-input"
+                               class="emby-input" />
+                        <div class="fieldDescription">Your Spotify application's Client Secret</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtSpotifyRefreshToken">
+                            Spotify Refresh Token
+                        </label>
+                        <input id="txtSpotifyRefreshToken"
+                               type="password"
+                               is="emby-input"
+                               class="emby-input" />
+                        <div class="fieldDescription">
+                            OAuth refresh token. You can use tools like
+                            <a href="https://developer.spotify.com/documentation/web-api/tutorials/code-flow" target="_blank" rel="noopener noreferrer">
+                                Spotify's Authorization Code Flow
+                            </a>
+                            to obtain this token.
+                        </div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtTargetPlaylistId">
+                            Target Spotify Playlist ID (Optional)
+                        </label>
+                        <input id="txtTargetPlaylistId"
+                               type="text"
+                               is="emby-input"
+                               class="emby-input" />
+                        <div class="fieldDescription">
+                            Leave empty to use your Liked Songs. Otherwise, enter a playlist ID
+                            (found in the Spotify playlist URL after /playlist/).
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OpenAI Configuration Section -->
+                <div class="verticalSection">
+                    <h3 class="sectionTitle">OpenAI Configuration</h3>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtOpenAIApiKey">
+                            OpenAI API Key
+                        </label>
+                        <input id="txtOpenAIApiKey"
+                               type="password"
+                               is="emby-input"
+                               class="emby-input" />
+                        <div class="fieldDescription">
+                            Your OpenAI API key from
+                            <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">
+                                platform.openai.com
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="selectOpenAIModel">
+                            OpenAI Model
+                        </label>
+                        <select id="selectOpenAIModel"
+                                is="emby-select"
+                                class="emby-select">
+                            <option value="gpt-4o-mini">gpt-4o-mini (Recommended - Cheapest)</option>
+                            <option value="gpt-4o">gpt-4o (Better quality)</option>
+                            <option value="gpt-4-turbo">gpt-4-turbo (Legacy)</option>
+                            <option value="gpt-3.5-turbo">gpt-3.5-turbo (Fastest)</option>
+                        </select>
+                        <div class="fieldDescription">
+                            Select the OpenAI model for track analysis. gpt-4o-mini offers the best price/performance ratio.
+                        </div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtMaxTracks">
+                            Max Tracks for Analysis
+                        </label>
+                        <input id="txtMaxTracks"
+                               type="number"
+                               is="emby-input"
+                               class="emby-input"
+                               min="50"
+                               max="5000"
+                               step="50"
+                               value="500" />
+                        <div class="fieldDescription">
+                            Maximum number of tracks to send to OpenAI for analysis (50-5000). Higher values increase cost.
+                        </div>
+                    </div>
+
+                    <div class="inputContainer" style="background: rgba(0,0,0,0.1); padding: 1em; border-radius: 4px; margin-top: 1em;">
+                        <div style="font-weight: bold; margin-bottom: 0.5em;">Estimated Cost per Sync</div>
+                        <div id="txtEstimatedCost" style="font-size: 1.5em; color: #00a4dc;">$0.0012</div>
+                        <div class="fieldDescription" style="margin-top: 0.5em;">
+                            Based on selected model and max tracks. Actual cost may vary slightly.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Genre Lookup Section -->
+                <div class="verticalSection">
+                    <h3 class="sectionTitle">Genre Lookup (Last.fm)</h3>
+                    <p class="fieldDescription">
+                        Last.fm provides accurate genre/tag data for artists. When your local files lack genre metadata,
+                        the plugin can fetch genres from Last.fm to improve playlist accuracy.
+                    </p>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtLastFmApiKey">
+                            Last.fm API Key
+                        </label>
+                        <input id="txtLastFmApiKey"
+                               type="password"
+                               is="emby-input"
+                               class="emby-input" />
+                        <div class="fieldDescription">
+                            Get a free API key at
+                            <a href="https://www.last.fm/api/account/create" target="_blank" rel="noopener noreferrer">
+                                last.fm/api/account/create
+                            </a>
+                            (requires a Last.fm account). Leave empty to disable Last.fm genre lookup.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Essentia Audio Analysis Section -->
+                <div class="verticalSection">
+                    <h3 class="sectionTitle">Local Audio Analysis (Essentia)</h3>
+                    <p class="fieldDescription">
+                        Essentia is an open-source audio analysis library that can extract audio features (energy, tempo, danceability, etc.)
+                        directly from your local audio files. This is a replacement for Spotify's deprecated audio features API.
+                    </p>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="chkEnableEssentia"
+                                   type="checkbox"
+                                   is="emby-checkbox" />
+                            <span>Enable Essentia Audio Analysis</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            When enabled, the plugin will analyze your local audio files using Essentia to extract audio features.
+                            This requires the Essentia binary to be installed on your server.
+                        </div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtEssentiaBinaryPath">
+                            Essentia Binary Path (Optional)
+                        </label>
+                        <input id="txtEssentiaBinaryPath"
+                               type="text"
+                               is="emby-input"
+                               class="emby-input"
+                               placeholder="Leave empty to auto-detect" />
+                        <div class="fieldDescription">
+                            Leave empty to auto-detect bundled binary or system installation.
+                            <br><br>
+                            <strong>Auto-detection order:</strong>
+                            <br>1. Bundled binary (if included with plugin)
+                            <br>2. System PATH (/usr/bin/essentia_streaming_extractor_music)
+                            <br><br>
+                            <strong>Manual installation:</strong>
+                            <br><strong>Linux/Docker:</strong> apt install essentia-extractors
+                            <br><strong>macOS:</strong> brew install essentia
+                        </div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtEssentiaMaxConcurrency">
+                            Max Concurrent Analyses
+                        </label>
+                        <input id="txtEssentiaMaxConcurrency"
+                               type="number"
+                               is="emby-input"
+                               class="emby-input"
+                               min="1"
+                               max="8"
+                               value="2" />
+                        <div class="fieldDescription">
+                            Maximum number of tracks to analyze in parallel (1-8). Higher values are faster but use more CPU/memory.
+                        </div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtEssentiaTimeout">
+                            Analysis Timeout (seconds)
+                        </label>
+                        <input id="txtEssentiaTimeout"
+                               type="number"
+                               is="emby-input"
+                               class="emby-input"
+                               min="30"
+                               max="600"
+                               value="120" />
+                        <div class="fieldDescription">
+                            Maximum time per track analysis in seconds. Increase for very long tracks.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Usage Statistics Section -->
+                <div class="verticalSection">
+                    <h3 class="sectionTitle">Usage Statistics</h3>
+
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1em;">
+                        <div style="background: rgba(0,0,0,0.1); padding: 1em; border-radius: 4px; text-align: center;">
+                            <div class="fieldDescription">Last Sync Cost</div>
+                            <div id="txtLastSyncCost" style="font-size: 1.2em; font-weight: bold;">$0.0000</div>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.1); padding: 1em; border-radius: 4px; text-align: center;">
+                            <div class="fieldDescription">Total Tokens Used</div>
+                            <div id="txtTotalTokens" style="font-size: 1.2em; font-weight: bold;">0</div>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.1); padding: 1em; border-radius: 4px; text-align: center;">
+                            <div class="fieldDescription">Cumulative Cost</div>
+                            <div id="txtTotalCost" style="font-size: 1.2em; font-weight: bold;">$0.00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Jellyfin Configuration Section -->
+                <div class="verticalSection">
+                    <h3 class="sectionTitle">Jellyfin Configuration</h3>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="selectJellyfinUser">
+                            Jellyfin User
+                        </label>
+                        <select id="selectJellyfinUser"
+                                is="emby-select"
+                                class="emby-select">
+                            <option value="">Select a user...</option>
+                        </select>
+                        <div class="fieldDescription">
+                            The user whose library will be searched and who will own the generated playlists.
+                        </div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtJellyfinUserId">
+                            Or Enter User ID Manually
+                        </label>
+                        <input id="txtJellyfinUserId"
+                               type="text"
+                               is="emby-input"
+                               class="emby-input"
+                               placeholder="e.g., 12345678-1234-1234-1234-123456789abc" />
+                        <div class="fieldDescription">
+                            If the dropdown above doesn't work, paste your User ID here.
+                            Find it in Dashboard → Users → click your user → look at the URL for the userId parameter.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Settings Section -->
+                <div class="verticalSection">
+                    <h3 class="sectionTitle">Advanced Settings</h3>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtNumberOfClusters">
+                            Number of Mood Clusters
+                        </label>
+                        <input id="txtNumberOfClusters"
+                               type="number"
+                               is="emby-input"
+                               class="emby-input"
+                               min="2"
+                               max="10"
+                               value="5" />
+                        <div class="fieldDescription">
+                            How many AI Mix playlists to generate (2-10). Each cluster represents a different mood or genre.
+                        </div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtMinimumMatchScore">
+                            Minimum Match Score
+                        </label>
+                        <input id="txtMinimumMatchScore"
+                               type="number"
+                               is="emby-input"
+                               class="emby-input"
+                               min="50"
+                               max="100"
+                               value="80" />
+                        <div class="fieldDescription">
+                            Fuzzy matching threshold (50-100). Higher values require closer matches between
+                            Spotify and local track names.
+                        </div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtMinTracksPerPlaylist">
+                            Min Tracks Per Playlist
+                        </label>
+                        <input id="txtMinTracksPerPlaylist"
+                               type="number"
+                               is="emby-input"
+                               class="emby-input"
+                               min="5"
+                               max="100"
+                               value="10" />
+                        <div class="fieldDescription">
+                            Minimum number of tracks required in each playlist. OpenAI will ensure each playlist has at least this many songs.
+                        </div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtMaxTracksPerPlaylist">
+                            Max Tracks Per Playlist
+                        </label>
+                        <input id="txtMaxTracksPerPlaylist"
+                               type="number"
+                               is="emby-input"
+                               class="emby-input"
+                               min="10"
+                               max="200"
+                               value="50" />
+                        <div class="fieldDescription">
+                            Maximum number of tracks in each generated playlist.
+                        </div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="chkReplaceExisting"
+                                   type="checkbox"
+                                   is="emby-checkbox"
+                                   checked />
+                            <span>Replace Existing AI Mix Playlists</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Delete old "AI Mix:" playlists before creating new ones. Uncheck to keep old playlists.
+                        </div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="chkEnableLyricAnalysis"
+                                   type="checkbox"
+                                   is="emby-checkbox" />
+                            <span>Enable Lyric Analysis (Experimental)</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            When enabled, songs without genre metadata will have their lyrics analyzed to determine mood/vibe.
+                            Looks for .lrc or .txt lyric files next to audio files. Increases OpenAI token usage.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="verticalSection">
+                    <button id="btnSave"
+                            type="submit"
+                            is="emby-button"
+                            class="raised button-submit block emby-button">
+                        <span>Save</span>
+                    </button>
+
+                    <button id="btnRunNow"
+                            type="button"
+                            is="emby-button"
+                            class="raised block emby-button"
+                            style="margin-top: 1em;">
+                        <span>Run Sync Now</span>
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        const SmartSpotifyPlaylistsConfig = {
+            pluginUniqueId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+            totalSongCount: 1000,
+
+            // Model pricing per 1M tokens (Jan 2025)
+            modelPricing: {
+                'gpt-4o-mini': { input: 0.15, output: 0.60 },
+                'gpt-4o': { input: 2.50, output: 10.00 },
+                'gpt-4-turbo': { input: 10.00, output: 30.00 },
+                'gpt-3.5-turbo': { input: 0.50, output: 1.50 }
+            },
+
+            estimateCost: function(trackCount, clusters, model) {
+                const pricing = this.modelPricing[model] || this.modelPricing['gpt-4o-mini'];
+
+                // Token estimation formula
+                const tokensPerTrack = 8;
+                const clusterOverhead = 200;
+                const assignmentOverhead = 150;
+                const baseOutput = 100;
+                const outputPerTrack = 2;
+
+                const inputTokens = (trackCount * tokensPerTrack) + clusterOverhead +
+                                    (trackCount * tokensPerTrack) + assignmentOverhead;
+                const outputTokens = baseOutput + (trackCount * outputPerTrack);
+
+                const inputCost = (inputTokens / 1000000) * pricing.input;
+                const outputCost = (outputTokens / 1000000) * pricing.output;
+
+                return inputCost + outputCost;
+            },
+
+            formatCost: function(cost) {
+                if (cost < 0.01) {
+                    return '$' + cost.toFixed(4);
+                }
+                return '$' + cost.toFixed(2);
+            },
+
+            formatNumber: function(num) {
+                return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            },
+
+            updateEstimatedCost: function() {
+                const model = document.querySelector('#selectOpenAIModel').value;
+                const maxTracks = parseInt(document.querySelector('#txtMaxTracks').value, 10) || 500;
+                const clusters = parseInt(document.querySelector('#txtNumberOfClusters').value, 10) || 5;
+
+                const cost = this.estimateCost(maxTracks, clusters, model);
+                document.querySelector('#txtEstimatedCost').textContent = this.formatCost(cost);
+            }
+        };
+
+        document.querySelector('#SmartSpotifyPlaylistsConfigPage')
+            .addEventListener('pageshow', function() {
+                Dashboard.showLoadingMsg();
+
+                // Load users for dropdown (with error handling)
+                ApiClient.getUsers().then(function(users) {
+                    const select = document.querySelector('#selectJellyfinUser');
+                    select.innerHTML = '<option value="">Select a user...</option>';
+                    if (users && users.length > 0) {
+                        users.forEach(function(user) {
+                            const option = document.createElement('option');
+                            option.value = user.Id;
+                            option.textContent = user.Name;
+                            select.appendChild(option);
+                        });
+                    }
+                }).catch(function(error) {
+                    console.error('Error loading users:', error);
+                    // User list failed, but we can still use manual input
+                });
+
+                // Load plugin configuration
+                ApiClient.getPluginConfiguration(SmartSpotifyPlaylistsConfig.pluginUniqueId)
+                .then(function(config) {
+                    document.querySelector('#txtSpotifyClientId').value = config.SpotifyClientId || '';
+                    document.querySelector('#txtSpotifyClientSecret').value = config.SpotifyClientSecret || '';
+                    document.querySelector('#txtSpotifyRefreshToken').value = config.SpotifyRefreshToken || '';
+                    document.querySelector('#txtTargetPlaylistId').value = config.TargetSpotifyPlaylistId || '';
+                    document.querySelector('#txtOpenAIApiKey').value = config.OpenAIApiKey || '';
+                    document.querySelector('#selectOpenAIModel').value = config.OpenAIModel || 'gpt-4o-mini';
+                    document.querySelector('#txtLastFmApiKey').value = config.LastFmApiKey || '';
+                    document.querySelector('#txtMaxTracks').value = config.MaxTracksForAnalysis || 500;
+                    document.querySelector('#selectJellyfinUser').value = config.JellyfinUserId || '';
+                    document.querySelector('#txtJellyfinUserId').value = config.JellyfinUserId || '';
+                    document.querySelector('#txtNumberOfClusters').value = config.NumberOfClusters || 5;
+                    document.querySelector('#txtMinimumMatchScore').value = config.MinimumMatchScore || 80;
+                    document.querySelector('#txtMinTracksPerPlaylist').value = config.MinTracksPerPlaylist || 10;
+                    document.querySelector('#txtMaxTracksPerPlaylist').value = config.MaxTracksPerPlaylist || 50;
+                    document.querySelector('#chkReplaceExisting').checked =
+                        config.ReplaceExistingPlaylists !== false;
+                    document.querySelector('#chkEnableLyricAnalysis').checked =
+                        config.EnableLyricAnalysis === true;
+
+                    // Essentia settings
+                    document.querySelector('#chkEnableEssentia').checked =
+                        config.EnableEssentiaAnalysis === true;
+                    document.querySelector('#txtEssentiaBinaryPath').value =
+                        config.EssentiaBinaryPath || '';
+                    document.querySelector('#txtEssentiaMaxConcurrency').value =
+                        config.EssentiaMaxConcurrency || 2;
+                    document.querySelector('#txtEssentiaTimeout').value =
+                        config.EssentiaTimeoutSeconds || 120;
+
+                    // Update usage statistics
+                    document.querySelector('#txtLastSyncCost').textContent =
+                        SmartSpotifyPlaylistsConfig.formatCost(config.LastSyncCostUsd || 0);
+                    document.querySelector('#txtTotalTokens').textContent =
+                        SmartSpotifyPlaylistsConfig.formatNumber(config.TotalTokensUsed || 0);
+                    document.querySelector('#txtTotalCost').textContent =
+                        SmartSpotifyPlaylistsConfig.formatCost(config.TotalCostUsd || 0);
+
+                    // Update cost estimate
+                    SmartSpotifyPlaylistsConfig.updateEstimatedCost();
+
+                    Dashboard.hideLoadingMsg();
+                }).catch(function(error) {
+                    console.error('Error loading configuration:', error);
+                    Dashboard.hideLoadingMsg();
+                    Dashboard.alert('Error loading configuration');
+                });
+            });
+
+        // Update cost estimate when max tracks changes
+        document.querySelector('#txtMaxTracks')
+            .addEventListener('input', function() {
+                SmartSpotifyPlaylistsConfig.updateEstimatedCost();
+            });
+
+        // Update cost estimate when model changes
+        document.querySelector('#selectOpenAIModel')
+            .addEventListener('change', function() {
+                SmartSpotifyPlaylistsConfig.updateEstimatedCost();
+            });
+
+        // Update cost estimate when clusters change
+        document.querySelector('#txtNumberOfClusters')
+            .addEventListener('input', function() {
+                SmartSpotifyPlaylistsConfig.updateEstimatedCost();
+            });
+
+        // Sync dropdown and manual input for user selection
+        document.querySelector('#selectJellyfinUser')
+            .addEventListener('change', function() {
+                document.querySelector('#txtJellyfinUserId').value = this.value;
+            });
+
+        // When manual user ID is entered, clear dropdown selection
+        document.querySelector('#txtJellyfinUserId')
+            .addEventListener('input', function() {
+                var select = document.querySelector('#selectJellyfinUser');
+                if (this.value.trim()) {
+                    select.value = '';
+                }
+            });
+
+        document.querySelector('#SmartSpotifyPlaylistsConfigForm')
+            .addEventListener('submit', function(e) {
+                e.preventDefault();
+                Dashboard.showLoadingMsg();
+
+                ApiClient.getPluginConfiguration(SmartSpotifyPlaylistsConfig.pluginUniqueId)
+                    .then(function(config) {
+                        config.SpotifyClientId = document.querySelector('#txtSpotifyClientId').value;
+                        config.SpotifyClientSecret = document.querySelector('#txtSpotifyClientSecret').value;
+                        config.SpotifyRefreshToken = document.querySelector('#txtSpotifyRefreshToken').value;
+                        config.TargetSpotifyPlaylistId = document.querySelector('#txtTargetPlaylistId').value;
+                        config.OpenAIApiKey = document.querySelector('#txtOpenAIApiKey').value;
+                        config.OpenAIModel = document.querySelector('#selectOpenAIModel').value;
+                        config.LastFmApiKey = document.querySelector('#txtLastFmApiKey').value;
+                        config.MaxTracksForAnalysis = parseInt(
+                            document.querySelector('#txtMaxTracks').value, 10) || 500;
+                        // Use manual input if provided, otherwise use dropdown
+                        var manualUserId = document.querySelector('#txtJellyfinUserId').value.trim();
+                        var dropdownUserId = document.querySelector('#selectJellyfinUser').value;
+                        config.JellyfinUserId = manualUserId || dropdownUserId;
+                        config.NumberOfClusters = parseInt(
+                            document.querySelector('#txtNumberOfClusters').value, 10) || 5;
+                        config.MinimumMatchScore = parseInt(
+                            document.querySelector('#txtMinimumMatchScore').value, 10) || 80;
+                        config.MinTracksPerPlaylist = parseInt(
+                            document.querySelector('#txtMinTracksPerPlaylist').value, 10) || 10;
+                        config.MaxTracksPerPlaylist = parseInt(
+                            document.querySelector('#txtMaxTracksPerPlaylist').value, 10) || 50;
+                        config.ReplaceExistingPlaylists =
+                            document.querySelector('#chkReplaceExisting').checked;
+                        config.EnableLyricAnalysis =
+                            document.querySelector('#chkEnableLyricAnalysis').checked;
+
+                        // Essentia settings
+                        config.EnableEssentiaAnalysis =
+                            document.querySelector('#chkEnableEssentia').checked;
+                        config.EssentiaBinaryPath =
+                            document.querySelector('#txtEssentiaBinaryPath').value;
+                        config.EssentiaMaxConcurrency = parseInt(
+                            document.querySelector('#txtEssentiaMaxConcurrency').value, 10) || 2;
+                        config.EssentiaTimeoutSeconds = parseInt(
+                            document.querySelector('#txtEssentiaTimeout').value, 10) || 120;
+
+                        return ApiClient.updatePluginConfiguration(
+                            SmartSpotifyPlaylistsConfig.pluginUniqueId, config);
+                    }).then(function() {
+                        Dashboard.hideLoadingMsg();
+                        Dashboard.alert('Settings saved successfully');
+                    }).catch(function(error) {
+                        console.error('Error saving configuration:', error);
+                        Dashboard.hideLoadingMsg();
+                        Dashboard.alert('Error saving configuration');
+                    });
+            });
+
+        document.querySelector('#btnRunNow')
+            .addEventListener('click', function() {
+                Dashboard.showLoadingMsg();
+
+                // First, get all scheduled tasks to find our task's ID
+                ApiClient.getScheduledTasks().then(function(tasks) {
+                    var ourTask = tasks.find(function(t) {
+                        return t.Key === 'SmartSpotifyPlaylistsSync';
+                    });
+
+                    if (!ourTask) {
+                        Dashboard.hideLoadingMsg();
+                        Dashboard.alert('Could not find the sync task. Try restarting Jellyfin.');
+                        return;
+                    }
+
+                    // Start the task using its ID
+                    return ApiClient.ajax({
+                        type: 'POST',
+                        url: ApiClient.getUrl('ScheduledTasks/Running/' + ourTask.Id)
+                    });
+                }).then(function() {
+                    Dashboard.hideLoadingMsg();
+                    Dashboard.alert('Sync task started. Check the scheduled tasks page for progress.');
+                }).catch(function(error) {
+                    console.error('Error starting task:', error);
+                    Dashboard.hideLoadingMsg();
+                    Dashboard.alert('Error starting sync task: ' + (error.message || 'Unknown error'));
+                });
+            });
+    </script>
+</div>
+</body>
+</html>

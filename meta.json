@@ -1,0 +1,12 @@
+{
+  "category": "General",
+  "changelog": "",
+  "description": "Creates AI-powered mood/genre playlists by analyzing your Spotify Liked Songs and matching them to your local Jellyfin library.",
+  "guid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "name": "Smart Spotify Playlists",
+  "overview": "AI-powered playlist generator using Spotify and OpenAI",
+  "owner": "SmartSpotifyPlaylists",
+  "targetAbi": "10.11.5.0",
+  "timestamp": "2025-01-18T00:00:00Z",
+  "version": "1.0.0.0"
+}

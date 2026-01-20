@@ -1,0 +1,58 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Jellyfin.Plugin.SmartSpotifyPlaylists</RootNamespace>
+    <AssemblyName>Jellyfin.Plugin.SmartSpotifyPlaylists</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Jellyfin.Controller" Version="10.11.5" ExcludeAssets="runtime" />
+    <PackageReference Include="Jellyfin.Model" Version="10.11.5" ExcludeAssets="runtime" />
+    <PackageReference Include="SpotifyAPI.Web" Version="7.1.1" />
+    <PackageReference Include="SpotifyAPI.Web.Auth" Version="7.1.1" />
+    <PackageReference Include="Betalgo.Ranul.OpenAI" Version="8.8.0" />
+    <PackageReference Include="Fastenshtein" Version="1.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Configuration\configPage.html" />
+  </ItemGroup>
+
+  <!-- Essentia binaries - embed if present, ignore if not -->
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\essentia\linux-x64\essentia_streaming_extractor_music"
+                      Condition="Exists('Resources\essentia\linux-x64\essentia_streaming_extractor_music')"
+                      LogicalName="Jellyfin.Plugin.SmartSpotifyPlaylists.Resources.essentia.linux-x64.essentia_streaming_extractor_music" />
+    <EmbeddedResource Include="Resources\essentia\linux-arm64\essentia_streaming_extractor_music"
+                      Condition="Exists('Resources\essentia\linux-arm64\essentia_streaming_extractor_music')"
+                      LogicalName="Jellyfin.Plugin.SmartSpotifyPlaylists.Resources.essentia.linux-arm64.essentia_streaming_extractor_music" />
+    <EmbeddedResource Include="Resources\essentia\win-x64\essentia_streaming_extractor_music.exe"
+                      Condition="Exists('Resources\essentia\win-x64\essentia_streaming_extractor_music.exe')"
+                      LogicalName="Jellyfin.Plugin.SmartSpotifyPlaylists.Resources.essentia.win-x64.essentia_streaming_extractor_music.exe" />
+    <EmbeddedResource Include="Resources\essentia\osx-x64\essentia_streaming_extractor_music"
+                      Condition="Exists('Resources\essentia\osx-x64\essentia_streaming_extractor_music')"
+                      LogicalName="Jellyfin.Plugin.SmartSpotifyPlaylists.Resources.essentia.osx-x64.essentia_streaming_extractor_music" />
+    <EmbeddedResource Include="Resources\essentia\osx-arm64\essentia_streaming_extractor_music"
+                      Condition="Exists('Resources\essentia\osx-arm64\essentia_streaming_extractor_music')"
+                      LogicalName="Jellyfin.Plugin.SmartSpotifyPlaylists.Resources.essentia.osx-arm64.essentia_streaming_extractor_music" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="meta.json" CopyToOutputDirectory="Always" />
+  </ItemGroup>
+
+  <!-- Create Essentia folder structure on build -->
+  <Target Name="CreateEssentiaFolders" BeforeTargets="Build">
+    <MakeDir Directories="Resources\essentia\linux-x64" />
+    <MakeDir Directories="Resources\essentia\linux-arm64" />
+    <MakeDir Directories="Resources\essentia\win-x64" />
+    <MakeDir Directories="Resources\essentia\osx-x64" />
+    <MakeDir Directories="Resources\essentia\osx-arm64" />
+  </Target>
+
+</Project>
